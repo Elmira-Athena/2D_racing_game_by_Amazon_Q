@@ -87,7 +87,7 @@ class Car:
             # Check for ramp collisions
             if ramps and not self.in_air:
                 for ramp in ramps:
-                    if abs(self.distance - ramp['position']) < 20:
+                    if abs(self.distance - ramp['position']) < 30:
                         self.jump_velocity = 15 + (self.speed * 0.8)  # Jump height based on speed
                         self.in_air = True
                         self.air_time = 0
@@ -244,30 +244,54 @@ class Car:
                                 (start_x, start_y), (end_x, end_y), 2)
 
 class PlayerCar(Car):
-    def __init__(self, x, y, image, lane):
+    def __init__(self, x, y, image, lane, player_num=1):
         super().__init__(x, y, image, lane)
+        self.player_num = player_num  # 1 or 2
     
     def handle_input(self, keys):
-        # Acceleration
-        if keys[pygame.K_RIGHT] or keys[pygame.K_UP]:
-            self.acceleration = self.base_acceleration
-            self.add_effects()
+        # Different controls based on player number
+        if self.player_num == 1:
+            # Player 1 controls: Arrow keys
+            if keys[pygame.K_RIGHT] or keys[pygame.K_UP]:
+                self.acceleration = self.base_acceleration
+                self.add_effects()
+            else:
+                self.acceleration = 0
+            
+            # Boost
+            if keys[pygame.K_SPACE]:
+                if self.activate_boost():
+                    # Add extra boost effects
+                    if self.in_air:
+                        # Enhanced air boost effects
+                        for _ in range(15):
+                            self.particles.add_boost_trail(
+                                self.x + 10 + random.uniform(-10, 10),
+                                self.y + 30 + random.uniform(-5, 5)
+                            )
+                    else:
+                        self.add_effects()
         else:
-            self.acceleration = 0
-        
-        # Boost
-        if keys[pygame.K_SPACE]:
-            if self.activate_boost():
-                # Add extra boost effects
-                if self.in_air:
-                    # Enhanced air boost effects
-                    for _ in range(15):
-                        self.particles.add_boost_trail(
-                            self.x + 10 + random.uniform(-10, 10),
-                            self.y + 30 + random.uniform(-5, 5)
-                        )
-                else:
-                    self.add_effects()
+            # Player 2 controls: WASD
+            if keys[pygame.K_d] or keys[pygame.K_w]:
+                self.acceleration = self.base_acceleration
+                self.add_effects()
+            else:
+                self.acceleration = 0
+            
+            # Boost
+            if keys[pygame.K_LSHIFT]:
+                if self.activate_boost():
+                    # Add extra boost effects
+                    if self.in_air:
+                        # Enhanced air boost effects
+                        for _ in range(15):
+                            self.particles.add_boost_trail(
+                                self.x + 10 + random.uniform(-10, 10),
+                                self.y + 30 + random.uniform(-5, 5)
+                            )
+                    else:
+                        self.add_effects()
 
 class AICar(Car):
     def __init__(self, x, y, image, lane, difficulty=1.0):

@@ -112,7 +112,7 @@ def load_assets():
     assets['player_car'] = create_pixel_car(CAR_WIDTH, CAR_HEIGHT, (80, 90, 100), (30, 30, 40), car_type="gtr")
     
     # Create opponent car (red sports car)
-    assets['opponent_car'] = create_pixel_car(CAR_WIDTH, CAR_HEIGHT, (220, 30, 30), (30, 30, 30))
+    assets['opponent_car'] = create_pixel_car(CAR_WIDTH, CAR_HEIGHT, (220, 30, 30), (30, 30, 30), car_type="gtr")
     
     # Create backgrounds for different seasons
     assets['background_spring'] = create_background("spring")

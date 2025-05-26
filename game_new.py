@@ -39,10 +39,10 @@ class DragRaceGame:
         
         # Create ramps
         self.ramps = [
-            {"position": 1000, "height": 60},
-            {"position": 2500, "height": 80},
-            {"position": 4000, "height": 100},
-            {"position": 5500, "height": 70}
+            {"position": 1000, "height": 80},
+            {"position": 2500, "height": 100},
+            {"position": 4000, "height": 120},
+            {"position": 5500, "height": 90}
         ]
         
         # Create lanes
@@ -228,21 +228,22 @@ class DragRaceGame:
                     outline_color = (170, 170, 190)  # Darker gray
                 
                 # Draw filled ramp
+                road_y = self.lanes[0]["y"] + 35  # Position ramp at player's lane height + adjustment
                 points = [
-                    (ramp_x, SCREEN_HEIGHT - 100),  # Bottom left
-                    (ramp_x + ramp_width, SCREEN_HEIGHT - 100),  # Bottom right
-                    (ramp_x + ramp_width, SCREEN_HEIGHT - 100 - ramp_height//3),  # Middle right
-                    (ramp_x, SCREEN_HEIGHT - 100 - ramp_height)  # Top left
+                    (ramp_x, road_y),  # Bottom left
+                    (ramp_x + ramp_width, road_y),  # Bottom right
+                    (ramp_x + ramp_width - ramp_height//3, road_y - ramp_height),  # Top right
+                    (ramp_x, road_y - ramp_height//3)  # Top left
                 ]
                 pygame.draw.polygon(screen, ramp_color, points)
                 
                 # Draw ramp outline
-                pygame.draw.lines(screen, outline_color, False, points, 3)
+                pygame.draw.lines(screen, outline_color, True, points, 3)
                 
                 # Add "RAMP" text
                 ramp_text = self.small_font.render("RAMP", True, (255, 255, 255))
                 text_x = ramp_x + (ramp_width // 2) - (ramp_text.get_width() // 2)
-                text_y = SCREEN_HEIGHT - 100 - (ramp_height // 2)
+                text_y = road_y - (ramp_height // 2) - 10
                 screen.blit(ramp_text, (text_x, text_y))
                 
                 # Add decorative elements to ramp
@@ -251,8 +252,8 @@ class DragRaceGame:
                     pygame.draw.line(
                         screen,
                         (255, 255, 255),
-                        (ramp_x, SCREEN_HEIGHT - 100 - ramp_height),
-                        (ramp_x + ramp_width, SCREEN_HEIGHT - 100 - ramp_height//3),
+                        (ramp_x, road_y - ramp_height//3),
+                        (ramp_x + ramp_width - ramp_height//3, road_y - ramp_height),
                         3
                     )
                 else:
@@ -260,8 +261,8 @@ class DragRaceGame:
                     pygame.draw.line(
                         screen,
                         (255, 255, 255),
-                        (ramp_x, SCREEN_HEIGHT - 100 - ramp_height),
-                        (ramp_x + ramp_width, SCREEN_HEIGHT - 100 - ramp_height//3),
+                        (ramp_x, road_y - ramp_height//3),
+                        (ramp_x + ramp_width - ramp_height//3, road_y - ramp_height),
                         2
                     )
                 
@@ -275,18 +276,17 @@ class DragRaceGame:
                         stripe_color = (0, 0, 0)  # Black
                     
                     stripe_x = ramp_x + (i * stripe_width)
-                    stripe_height = int((i / stripe_count) * ramp_height // 3)
                     
                     pygame.draw.rect(
                         screen,
                         stripe_color,
-                        (stripe_x, SCREEN_HEIGHT - 105, stripe_width, 5)
+                        (stripe_x, road_y - 5, stripe_width, 5)
                     )
                 
                 # Add ramp particles for visual interest
                 if random.random() > 0.8:
                     particle_x = ramp_x + random.randint(0, ramp_width)
-                    particle_y = SCREEN_HEIGHT - 100 - (ramp_height * (particle_x - ramp_x) / ramp_width // 2)
+                    particle_y = road_y - (ramp_height * (particle_x - ramp_x) / ramp_width // 2)
                     
                     if current_season == "spring":
                         color = (120, 200, 120)  # Bright green
@@ -416,6 +416,26 @@ class DragRaceGame:
                 elapsed = (pygame.time.get_ticks() - self.race_start_time) / 1000
                 time_text = self.small_font.render(f"Time: {elapsed:.2f}s", True, (255, 255, 255))
                 screen.blit(time_text, (SCREEN_WIDTH - 150, 20))
+                
+            # Draw player 2 / opponent info if in two-player mode
+            if self.two_player_mode:
+                # Draw P2 speed
+                p2_speed_text = self.small_font.render(f"P2 Speed: {int(self.opponent.speed * 20)} km/h", True, (0, 200, 255))
+                screen.blit(p2_speed_text, (SCREEN_WIDTH - 200, 50))
+                
+                # Draw P2 boost status
+                if self.opponent.boost_available:
+                    p2_boost_text = self.small_font.render("P2 BOOST: READY", True, (0, 255, 0))
+                elif self.opponent.boosting:
+                    p2_boost_text = self.small_font.render("P2 BOOST: ACTIVE", True, (255, 165, 0))
+                else:
+                    p2_boost_text = self.small_font.render("P2 BOOST: CHARGING", True, (150, 150, 150))
+                screen.blit(p2_boost_text, (SCREEN_WIDTH - 200, 80))
+                
+                # Draw P2 air status
+                if self.opponent.in_air:
+                    p2_air_text = self.small_font.render("P2 AIR TIME!", True, (100, 200, 255))
+                    screen.blit(p2_air_text, (SCREEN_WIDTH - 200, 110))
         
         # Draw finish screen
         if self.game_state == "finished":
@@ -426,19 +446,29 @@ class DragRaceGame:
             player_time = (self.player.finish_time - self.race_start_time) / 1000
             opponent_time = (self.opponent.finish_time - self.race_start_time) / 1000
             
+            # Adjust text based on game mode
+            p1_label = "Player 1" if self.two_player_mode else "Your"
+            p2_label = "Player 2" if self.two_player_mode else "Opponent"
+            
             if player_time < opponent_time:
-                result = "YOU WIN!"
+                if self.two_player_mode:
+                    result = "PLAYER 1 WINS!"
+                else:
+                    result = "YOU WIN!"
                 color = (0, 255, 0)
             elif opponent_time < player_time:
-                result = "YOU LOSE!"
+                if self.two_player_mode:
+                    result = "PLAYER 2 WINS!"
+                else:
+                    result = "YOU LOSE!"
                 color = (255, 0, 0)
             else:
                 result = "IT'S A TIE!"
                 color = (255, 255, 0)
             
             result_text = self.font.render(result, True, color)
-            player_time_text = self.small_font.render(f"Your Time: {player_time:.2f}s", True, (255, 255, 255))
-            opponent_time_text = self.small_font.render(f"Opponent Time: {opponent_time:.2f}s", True, (255, 255, 255))
+            player_time_text = self.small_font.render(f"{p1_label} Time: {player_time:.2f}s", True, (255, 255, 255))
+            opponent_time_text = self.small_font.render(f"{p2_label} Time: {opponent_time:.2f}s", True, (255, 255, 255))
             restart_text = self.small_font.render("Press R to restart or ESC to quit", True, (200, 200, 200))
             
             screen.blit(result_text, (SCREEN_WIDTH // 2 - result_text.get_width() // 2, SCREEN_HEIGHT // 2 - 60))
@@ -456,6 +486,18 @@ class DragRaceGame:
         # If in two-player mode, replace AI with a second player
         if self.two_player_mode:
             self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
+    
+    def toggle_two_player_mode(self):
+        """Toggle between one and two player modes"""
+        self.two_player_mode = not self.two_player_mode
+        
+        # Replace opponent with player 2 or AI based on mode
+        if self.two_player_mode:
+            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
+        else:
+            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
+            
+        return self.two_player_mode
 
 # Main game loop
 def main():
@@ -509,63 +551,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    def toggle_two_player_mode(self):
-        """Toggle between one and two player modes"""
-        self.two_player_mode = not self.two_player_mode
-        
-        # Replace opponent with player 2 or AI based on mode
-        if self.two_player_mode:
-            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
-        else:
-            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
-            
-        return self.two_player_mode
-    def draw_title_screen(self):
-        """Draw the title screen with game mode options"""
-        # Title
-        title = self.font.render("PIXEL DRAG RACE", True, (255, 255, 0))
-        subtitle = self.small_font.render("Press SPACE to start", True, (255, 255, 255))
-        
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 100))
-        screen.blit(subtitle, (SCREEN_WIDTH // 2 - subtitle.get_width() // 2, 160))
-        
-        # Game mode indicator
-        mode_text = "TWO PLAYER MODE" if self.two_player_mode else "ONE PLAYER MODE"
-        mode_color = (0, 255, 255) if self.two_player_mode else (255, 255, 255)
-        mode_render = self.small_font.render(mode_text, True, mode_color)
-        screen.blit(mode_render, (SCREEN_WIDTH // 2 - mode_render.get_width() // 2, 200))
-        
-        toggle_text = self.small_font.render("Press T to toggle game mode", True, (200, 200, 200))
-        screen.blit(toggle_text, (SCREEN_WIDTH // 2 - toggle_text.get_width() // 2, 230))
-        
-        # Instructions
-        if self.two_player_mode:
-            instructions = [
-                "Player 1 Controls:",
-                "RIGHT/UP: Accelerate, SPACE: Boost",
-                "Player 2 Controls:",
-                "W/D: Accelerate, LEFT SHIFT: Boost",
-                "R: Restart race"
-            ]
-        else:
-            instructions = [
-                "Controls:",
-                "RIGHT/UP: Accelerate",
-                "SPACE: Boost (when green light is on)",
-                "R: Restart race"
-            ]
-        
-        for i, line in enumerate(instructions):
-            text = self.small_font.render(line, True, (200, 200, 200))
-            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, 270 + i * 30))
-    def toggle_two_player_mode(self):
-        """Toggle between one and two player modes"""
-        self.two_player_mode = not self.two_player_mode
-        
-        # Replace opponent with player 2 or AI based on mode
-        if self.two_player_mode:
-            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
-        else:
-            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
-            
-        return self.two_player_mode
