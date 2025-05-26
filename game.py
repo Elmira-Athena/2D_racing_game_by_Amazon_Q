@@ -34,6 +34,14 @@ class DragRaceGame:
         self.current_season = 0
         self.season_change_distance = RACE_DISTANCE / len(self.seasons)
         
+        # Create ramps
+        self.ramps = [
+            {"position": 1000, "height": 30},
+            {"position": 2500, "height": 50},
+            {"position": 4000, "height": 70},
+            {"position": 5500, "height": 40}
+        ]
+        
         # Create lanes
         self.lanes = [
             {"y": SCREEN_HEIGHT - 180},  # Player lane
@@ -87,8 +95,8 @@ class DragRaceGame:
         
         # Update cars
         race_active = self.game_state == "racing"
-        self.player.update(race_active)
-        self.opponent.update(race_active)
+        self.player.update(race_active, self.ramps)
+        self.opponent.update(race_active, self.ramps)
         
         # Check for finish
         if race_active:
@@ -190,6 +198,86 @@ class DragRaceGame:
             # Default to summer background for menus
             screen.blit(self.assets['background_summer'], (0, 0))
         
+        # Draw ramps
+        for ramp in self.ramps:
+            ramp_x = ramp["position"] - self.camera_offset
+            if 0 <= ramp_x <= SCREEN_WIDTH:
+                # Draw ramp base
+                ramp_width = 80
+                ramp_height = ramp["height"]
+                
+                # Draw ramp with gradient
+                for i in range(ramp_width):
+                    height_at_point = int((i / ramp_width) * ramp_height)
+                    
+                    # Calculate color based on season
+                    progress = min(1.0, self.player.distance / RACE_DISTANCE)
+                    season_index = min(3, int(progress * 4))
+                    current_season = self.seasons[season_index]
+                    
+                    if current_season == "spring":
+                        ramp_color = (100, 180, 100)  # Green
+                    elif current_season == "summer":
+                        ramp_color = (180, 140, 60)   # Brown
+                    elif current_season == "autumn":
+                        ramp_color = (170, 90, 40)    # Dark brown
+                    else:  # winter
+                        ramp_color = (200, 200, 220)  # Light gray (snow-covered)
+                    
+                    # Draw ramp segment
+                    pygame.draw.line(
+                        screen, 
+                        ramp_color,
+                        (ramp_x + i, SCREEN_HEIGHT - 100 - height_at_point),
+                        (ramp_x + i, SCREEN_HEIGHT - 100),
+                        1
+                    )
+                
+                # Add decorative elements to ramp
+                if current_season == "winter":
+                    # Add snow on top
+                    pygame.draw.line(
+                        screen,
+                        (255, 255, 255),
+                        (ramp_x, SCREEN_HEIGHT - 100 - ramp_height),
+                        (ramp_x + ramp_width, SCREEN_HEIGHT - 100),
+                        3
+                    )
+                else:
+                    # Add highlight on top
+                    pygame.draw.line(
+                        screen,
+                        (255, 255, 255, 100),
+                        (ramp_x, SCREEN_HEIGHT - 100 - ramp_height),
+                        (ramp_x + ramp_width, SCREEN_HEIGHT - 100),
+                        1
+                    )
+                
+                # Add ramp particles for visual interest
+                if random.random() > 0.9:
+                    particle_x = ramp_x + random.randint(0, ramp_width)
+                    particle_y = SCREEN_HEIGHT - 100 - (ramp_height * (particle_x - ramp_x) / ramp_width)
+                    
+                    if current_season == "spring":
+                        color = (120, 200, 120)  # Bright green
+                    elif current_season == "summer":
+                        color = (200, 180, 100)  # Tan
+                    elif current_season == "autumn":
+                        color = (200, 100, 50)   # Orange
+                    else:  # winter
+                        color = (255, 255, 255)  # White
+                        
+                    self.particles.add_particle(
+                        particle_x,
+                        particle_y,
+                        color,
+                        random.uniform(1, 3),
+                        random.uniform(0.5, 1.5),
+                        -math.pi/2 + random.uniform(-0.3, 0.3),
+                        random.randint(20, 40),
+                        150
+                    )
+        
         # Draw finish line
         finish_x = self.finish_line_x - self.camera_offset
         if 0 <= finish_x <= SCREEN_WIDTH:
@@ -269,6 +357,11 @@ class DragRaceGame:
             season_index = min(3, int(progress * 4))
             season_text = self.small_font.render(f"Season: {self.seasons[season_index].capitalize()}", True, (255, 255, 255))
             screen.blit(season_text, (20, 110))
+            
+            # Draw air status if player is in air
+            if self.player.in_air:
+                air_text = self.small_font.render("AIR TIME!", True, (100, 200, 255))
+                screen.blit(air_text, (20, 140))
             
             # Draw race time
             if self.game_state == "racing":

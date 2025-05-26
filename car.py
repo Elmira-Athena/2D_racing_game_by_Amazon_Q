@@ -9,6 +9,7 @@ class Car:
         self.y = y
         self.image = image
         self.lane = lane  # Track which lane the car is in
+        self.original_y = y  # Store original y position for landing
         
         # Physics properties
         self.speed = 0
@@ -37,10 +38,18 @@ class Car:
         self.boost_cooldown = 180  # frames
         self.boost_timer = 0
         
+        # Jump/ramp properties
+        self.in_air = False
+        self.jump_height = 0
+        self.jump_velocity = 0
+        self.gravity = 0.5
+        self.rotation = 0  # For rotation in air
+        self.air_time = 0  # Track time in air for effects
+        
         # Particles
         self.particles = ParticleSystem()
     
-    def update(self, race_active=True):
+    def update(self, race_active=True, ramps=None):
         # Only update physics if race is active
         if race_active and not self.finished:
             # Apply acceleration and drag
@@ -54,8 +63,11 @@ class Car:
             else:
                 self.speed += self.acceleration
             
-            # Apply drag
-            self.speed -= self.drag * self.speed
+            # Apply drag (less drag when in air)
+            if self.in_air:
+                self.speed -= (self.drag * 0.5) * self.speed
+            else:
+                self.speed -= self.drag * self.speed
             
             # Clamp speed
             if self.speed > self.max_speed:
@@ -71,14 +83,81 @@ class Car:
                 self.boost_timer -= 1
                 if self.boost_timer <= 0:
                     self.boost_available = True
+            
+            # Check for ramp collisions
+            if ramps and not self.in_air:
+                for ramp in ramps:
+                    if abs(self.distance - ramp['position']) < 20:
+                        self.jump_velocity = 15 + (self.speed * 0.8)  # Jump height based on speed
+                        self.in_air = True
+                        self.air_time = 0
+                        break
+            
+            # Handle jumping/flying physics
+            if self.in_air:
+                self.air_time += 1
+                self.jump_height += self.jump_velocity
+                self.jump_velocity -= self.gravity
+                
+                # Rotate car in air
+                self.rotation = min(30, self.rotation + 1) if self.jump_velocity > 0 else max(-30, self.rotation - 1)
+                
+                # Add air effects
+                self.add_air_effects()
+                
+                # Check for landing
+                if self.jump_height <= 0 and self.jump_velocity < 0:
+                    self.in_air = False
+                    self.jump_height = 0
+                    self.jump_velocity = 0
+                    self.rotation = 0
+                    
+                    # Add landing effects
+                    for _ in range(10):
+                        self.particles.add_smoke(
+                            self.x + random.uniform(-20, 20),
+                            self.original_y + 35
+                        )
         
-        # Update bounce animation (always active for visual interest)
-        self.bounce_offset += self.bounce_direction * self.bounce_speed * (0.5 + self.speed / self.max_speed)
-        if abs(self.bounce_offset) > self.bounce_max:
-            self.bounce_direction *= -1
+        # Update bounce animation (only when not in air)
+        if not self.in_air:
+            self.bounce_offset += self.bounce_direction * self.bounce_speed * (0.5 + self.speed / self.max_speed)
+            if abs(self.bounce_offset) > self.bounce_max:
+                self.bounce_direction *= -1
         
         # Update particles
         self.particles.update()
+    
+    def add_air_effects(self):
+        """Add special effects when car is in the air"""
+        # Air stream particles
+        if random.random() > 0.5:
+            for _ in range(3):
+                self.particles.add_particle(
+                    self.x + random.uniform(-30, 30),
+                    self.y + random.uniform(-10, 30),
+                    (200, 200, 255),
+                    random.uniform(1, 3),
+                    random.uniform(2, 4),
+                    math.pi + random.uniform(-0.3, 0.3),
+                    random.randint(10, 20),
+                    150,
+                    "rect" if random.random() > 0.7 else "circle"
+                )
+        
+        # Add extra boost effects if boosting in air
+        if self.boosting:
+            for _ in range(5):
+                self.particles.add_particle(
+                    self.x + 10 + random.uniform(-10, 10),
+                    self.y + 30 + random.uniform(-5, 5),
+                    (255, 150, 50),
+                    random.uniform(3, 8),
+                    random.uniform(3, 6),
+                    math.pi + random.uniform(-0.5, 0.5),
+                    random.randint(15, 30),
+                    200
+                )
     
     def activate_boost(self):
         if self.boost_available and not self.boosting:
@@ -104,7 +183,7 @@ class Car:
                 )
         
         # Add tire smoke when accelerating hard
-        if self.acceleration > 0.1 and self.speed < 5:
+        if self.acceleration > 0.1 and self.speed < 5 and not self.in_air:
             for _ in range(2):
                 self.particles.add_smoke(
                     self.x + 20 + random.uniform(-5, 5),
@@ -124,9 +203,21 @@ class Car:
         # Draw particles first (behind car)
         self.particles.draw(surface)
         
-        # Draw car with bounce effect
+        # Calculate draw position
         draw_y = self.y + self.bounce_offset
-        surface.blit(self.image, (self.x - camera_offset, draw_y))
+        
+        # Apply jump height if in air
+        if self.in_air:
+            draw_y -= self.jump_height
+        
+        # Create a rotated copy of the car image if in air
+        if self.in_air:
+            rotated_image = pygame.transform.rotate(self.image, self.rotation)
+            # Adjust position to account for rotation
+            rect = rotated_image.get_rect(center=self.image.get_rect(topleft=(self.x - camera_offset, draw_y)).center)
+            surface.blit(rotated_image, rect.topleft)
+        else:
+            surface.blit(self.image, (self.x - camera_offset, draw_y))
         
         # Draw boost indicator
         if self.boost_available:
@@ -140,6 +231,17 @@ class Car:
             else:
                 color = (150, 150, 150)  # Gray when less than half ready
             pygame.draw.circle(surface, color, (int(self.x - camera_offset + 70), int(draw_y + 10)), 5)
+        
+        # Draw air effect indicator when in air
+        if self.in_air:
+            # Draw air stream lines
+            for i in range(3):
+                start_x = self.x - camera_offset - 20 - (i * 10)
+                start_y = draw_y + 20 + (i * 5) - (i * 5)
+                end_x = start_x - 20
+                end_y = start_y
+                pygame.draw.line(surface, (200, 200, 255, 150), 
+                                (start_x, start_y), (end_x, end_y), 2)
 
 class PlayerCar(Car):
     def __init__(self, x, y, image, lane):
@@ -157,7 +259,15 @@ class PlayerCar(Car):
         if keys[pygame.K_SPACE]:
             if self.activate_boost():
                 # Add extra boost effects
-                self.add_effects()
+                if self.in_air:
+                    # Enhanced air boost effects
+                    for _ in range(15):
+                        self.particles.add_boost_trail(
+                            self.x + 10 + random.uniform(-10, 10),
+                            self.y + 30 + random.uniform(-5, 5)
+                        )
+                else:
+                    self.add_effects()
 
 class AICar(Car):
     def __init__(self, x, y, image, lane, difficulty=1.0):
@@ -174,8 +284,8 @@ class AICar(Car):
         self.base_acceleration *= difficulty
         self.drag *= (2 - difficulty) * 0.8  # Lower drag for higher difficulty
     
-    def update(self, race_active=True):
-        super().update(race_active)
+    def update(self, race_active=True, ramps=None):
+        super().update(race_active, ramps)
         
         if race_active and not self.finished:
             # Handle AI reaction time at start

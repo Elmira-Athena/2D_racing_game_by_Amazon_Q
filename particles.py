@@ -87,6 +87,63 @@ class ParticleSystem:
                 "rect" if random.random() > 0.7 else "circle"
             )
     
+    def add_air_stream(self, x, y):
+        """Add air stream particles for flying effect"""
+        colors = [
+            (200, 200, 255),  # Light blue
+            (220, 220, 255),  # Lighter blue
+            (180, 180, 255),  # Slightly darker blue
+        ]
+        
+        for _ in range(5):
+            self.add_particle(
+                x, y,
+                random.choice(colors),
+                random.uniform(2, 5),
+                random.uniform(3, 7),
+                math.pi + random.uniform(-0.2, 0.2),
+                random.randint(10, 20),
+                150,
+                "rect" if random.random() > 0.5 else "circle"
+            )
+    
+    def add_boost_trail(self, x, y):
+        """Add enhanced boost trail particles"""
+        colors = [
+            (255, 100, 0),   # Orange
+            (255, 50, 0),    # Red-orange
+            (255, 200, 0),   # Yellow
+            (255, 255, 100), # Light yellow
+        ]
+        
+        for _ in range(8):
+            size = random.uniform(3, 10)
+            self.add_particle(
+                x + random.uniform(-5, 5), 
+                y + random.uniform(-5, 5),
+                random.choice(colors),
+                size,
+                random.uniform(2, 5),
+                math.pi + random.uniform(-0.5, 0.5),
+                random.randint(15, 35),
+                200,
+                "circle"
+            )
+            
+            # Add smaller "spark" particles
+            if random.random() > 0.7:
+                self.add_particle(
+                    x + random.uniform(-10, 10), 
+                    y + random.uniform(-10, 10),
+                    (255, 255, 200),
+                    random.uniform(1, 3),
+                    random.uniform(3, 8),
+                    random.uniform(0, 2 * math.pi),
+                    random.randint(5, 15),
+                    255,
+                    "rect"
+                )
+    
     def update(self):
         """Update all particles"""
         for particle in self.particles[:]:
