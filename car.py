@@ -46,12 +46,52 @@ class Car:
         self.rotation = 0  # For rotation in air
         self.air_time = 0  # Track time in air for effects
         
+        # Oil spill effect
+        self.spinning = False
+        self.spin_time = 0
+        self.spin_duration = 60  # 1 second at 60 FPS
+        self.spin_angle = 0
+        
+        # Traffic light penalty
+        self.penalized = False
+        self.penalty_time = 0
+        self.penalty_duration = 120  # 2 seconds at 60 FPS
+        
         # Particles
         self.particles = ParticleSystem()
     
-    def update(self, race_active=True, ramps=None):
+    def update(self, race_active=True, ramps=None, oil_spills=None, traffic_lights=None):
         # Only update physics if race is active
         if race_active and not self.finished:
+            # Handle traffic light penalty
+            if self.penalized:
+                self.penalty_time += 1
+                # Force car to stop during penalty
+                self.speed = 0
+                self.acceleration = 0
+                
+                # Add penalty particles (red flashing)
+                if self.penalty_time % 10 < 5:  # Flash every 5 frames
+                    for _ in range(2):
+                        self.particles.add_particle(
+                            self.x + random.uniform(-20, 20),
+                            self.y + random.uniform(-20, 20),
+                            (255, 0, 0),
+                            random.uniform(3, 6),
+                            random.uniform(0.5, 1.5),
+                            random.uniform(0, 2 * math.pi),
+                            random.randint(10, 20),
+                            150
+                        )
+                
+                # End penalty after duration
+                if self.penalty_time >= self.penalty_duration:
+                    self.penalized = False
+                    self.penalty_time = 0
+                    
+                # Don't process other physics while penalized
+                return
+            
             # Apply acceleration and drag
             if self.boosting:
                 self.speed += self.base_acceleration * 2
@@ -75,8 +115,59 @@ class Car:
             elif self.speed < 0:
                 self.speed = 0
             
+            # Handle spinning from oil
+            if self.spinning:
+                self.spin_time += 1
+                self.spin_angle += 15  # Rotate 15 degrees per frame
+                
+                # Slow down while spinning
+                self.speed *= 0.95
+                
+                # Add oil particles
+                if random.random() > 0.7:
+                    self.particles.add_particle(
+                        self.x + random.uniform(-20, 20),
+                        self.y + 35,
+                        (30, 30, 30),
+                        random.uniform(3, 6),
+                        random.uniform(0.5, 1.5),
+                        random.uniform(0, 2 * math.pi),
+                        random.randint(20, 40),
+                        150
+                    )
+                
+                # End spinning after duration
+                if self.spin_time >= self.spin_duration:
+                    self.spinning = False
+                    self.spin_time = 0
+                    self.spin_angle = 0
+            
             # Update position
+            old_distance = self.distance
             self.distance += self.speed
+            
+            # Check for traffic light violations
+            if traffic_lights:
+                for light in traffic_lights:
+                    # Check if we just crossed this light
+                    if old_distance < light["position"] and self.distance >= light["position"]:
+                        if light["state"] == "red":
+                            # Apply penalty for running a red light
+                            self.penalized = True
+                            self.penalty_time = 0
+                            
+                            # Add penalty effect particles
+                            for _ in range(20):
+                                self.particles.add_particle(
+                                    self.x,
+                                    self.y,
+                                    (255, 0, 0),
+                                    random.uniform(3, 8),
+                                    random.uniform(1, 3),
+                                    random.uniform(0, 2 * math.pi),
+                                    random.randint(20, 40),
+                                    200
+                                )
             
             # Update boost cooldown
             if not self.boost_available and not self.boosting:
@@ -91,6 +182,27 @@ class Car:
                         self.jump_velocity = 15 + (self.speed * 0.8)  # Jump height based on speed
                         self.in_air = True
                         self.air_time = 0
+                        break
+            
+            # Check for oil spill collisions
+            if oil_spills and not self.in_air and not self.spinning:
+                for spill in oil_spills:
+                    if abs(self.distance - spill['position']) < 30 and self.lane == spill['lane']:
+                        self.spinning = True
+                        self.spin_time = 0
+                        
+                        # Add oil splash particles
+                        for _ in range(15):
+                            self.particles.add_particle(
+                                self.x + random.uniform(-20, 20),
+                                self.y + 35,
+                                (30, 30, 30),
+                                random.uniform(3, 8),
+                                random.uniform(1, 3),
+                                random.uniform(0, 2 * math.pi),
+                                random.randint(20, 40),
+                                180
+                            )
                         break
             
             # Handle jumping/flying physics
@@ -120,7 +232,7 @@ class Car:
                         )
         
         # Update bounce animation (only when not in air)
-        if not self.in_air:
+        if not self.in_air and not self.spinning and not self.penalized:
             self.bounce_offset += self.bounce_direction * self.bounce_speed * (0.5 + self.speed / self.max_speed)
             if abs(self.bounce_offset) > self.bounce_max:
                 self.bounce_direction *= -1
@@ -210,9 +322,11 @@ class Car:
         if self.in_air:
             draw_y -= self.jump_height
         
-        # Create a rotated copy of the car image if in air
-        if self.in_air:
-            rotated_image = pygame.transform.rotate(self.image, self.rotation)
+        # Create a rotated copy of the car image if in air or spinning
+        if self.in_air or self.spinning:
+            # Use rotation angle for air, or spin angle for spinning
+            angle = self.rotation if self.in_air else self.spin_angle
+            rotated_image = pygame.transform.rotate(self.image, angle)
             # Adjust position to account for rotation
             rect = rotated_image.get_rect(center=self.image.get_rect(topleft=(self.x - camera_offset, draw_y)).center)
             surface.blit(rotated_image, rect.topleft)
@@ -242,6 +356,23 @@ class Car:
                 end_y = start_y
                 pygame.draw.line(surface, (200, 200, 255, 150), 
                                 (start_x, start_y), (end_x, end_y), 2)
+        
+        # Draw spinning indicator
+        if self.spinning:
+            spin_text = pygame.font.SysFont(None, 24).render("SPINNING!", True, (255, 50, 50))
+            surface.blit(spin_text, (self.x - camera_offset - 20, draw_y - 30))
+            
+        # Draw penalty indicator
+        if self.penalized:
+            penalty_text = pygame.font.SysFont(None, 24).render("PENALTY!", True, (255, 0, 0))
+            surface.blit(penalty_text, (self.x - camera_offset - 20, draw_y - 50))
+            
+            # Draw red flashing rectangle around car
+            if self.penalty_time % 10 < 5:  # Flash every 5 frames
+                pygame.draw.rect(surface, (255, 0, 0), 
+                               (self.x - camera_offset - 10, draw_y - 10, 
+                                self.image.get_width() + 20, self.image.get_height() + 20), 
+                               2)
 
 class PlayerCar(Car):
     def __init__(self, x, y, image, lane, player_num=1):
@@ -308,8 +439,8 @@ class AICar(Car):
         self.base_acceleration *= difficulty
         self.drag *= (2 - difficulty) * 0.8  # Lower drag for higher difficulty
     
-    def update(self, race_active=True, ramps=None):
-        super().update(race_active, ramps)
+    def update(self, race_active=True, ramps=None, oil_spills=None, traffic_lights=None):
+        super().update(race_active, ramps, oil_spills, traffic_lights)
         
         if race_active and not self.finished:
             # Handle AI reaction time at start

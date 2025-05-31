@@ -305,33 +305,7 @@ class DragRaceGame:
                     ramp_color = (200, 200, 220)  # Light gray (snow-covered)
                     outline_color = (170, 170, 190)  # Darker gray
                 
-        # Draw ramps
-        for ramp in self.ramps:
-            ramp_x = ramp["position"] - self.camera_offset
-            if 0 <= ramp_x <= SCREEN_WIDTH:
-                # Draw ramp base
-                ramp_width = 120
-                ramp_height = ramp["height"]
-                
-                # Calculate color based on season
-                progress = min(1.0, self.player.distance / RACE_DISTANCE)
-                season_index = min(3, int(progress * 4))
-                current_season = self.seasons[season_index]
-                
-                if current_season == "spring":
-                    ramp_color = (100, 180, 100)  # Green
-                    outline_color = (80, 140, 80)  # Darker green
-                elif current_season == "summer":
-                    ramp_color = (180, 140, 60)   # Brown
-                    outline_color = (140, 100, 40)  # Darker brown
-                elif current_season == "autumn":
-                    ramp_color = (170, 90, 40)    # Dark brown
-                    outline_color = (130, 70, 30)  # Darker brown
-                else:  # winter
-                    ramp_color = (200, 200, 220)  # Light gray (snow-covered)
-                    outline_color = (170, 170, 190)  # Darker gray
-                
-                # Draw filled ramp - corrected direction
+                # Draw filled ramp - FIXED DIRECTION
                 road_y = self.lanes[0]["y"] + 35  # Position ramp at player's lane height + adjustment
                 points = [
                     (ramp_x, road_y),  # Bottom left
@@ -342,7 +316,7 @@ class DragRaceGame:
                 pygame.draw.polygon(screen, ramp_color, points)
                 
                 # Draw ramp outline
-                pygame.draw.lines(screen, outline_color, True, points, 3)
+                pygame.draw.lines(screen, outline_color, False, points, 3)
                 
                 # Add "RAMP" text
                 ramp_text = self.small_font.render("RAMP", True, (255, 255, 255))
@@ -350,7 +324,7 @@ class DragRaceGame:
                 text_y = road_y - (ramp_height // 2) - 10
                 screen.blit(ramp_text, (text_x, text_y))
                 
-                # Add decorative elements to ramp
+                # Add decorative elements to ramp - FIXED DIRECTION
                 if current_season == "winter":
                     # Add snow on top
                     pygame.draw.line(
@@ -369,49 +343,7 @@ class DragRaceGame:
                         (ramp_x + ramp_width, road_y - ramp_height),
                         2
                     )
-                
-                # Add warning stripes
-                stripe_count = 5
-                stripe_width = ramp_width // stripe_count
-                for i in range(stripe_count):
-                    if i % 2 == 0:
-                        stripe_color = (255, 255, 0)  # Yellow
-                    else:
-                        stripe_color = (0, 0, 0)  # Black
-                    
-                    stripe_x = ramp_x + (i * stripe_width)
-                    
-                    pygame.draw.rect(
-                        screen,
-                        stripe_color,
-                        (stripe_x, road_y - 5, stripe_width, 5)
-                    )
-                
-                # Add "RAMP" text
-                ramp_text = self.small_font.render("RAMP", True, (255, 255, 255))
-                text_x = ramp_x + (ramp_width // 2) - (ramp_text.get_width() // 2)
-                text_y = road_y - (ramp_height // 2) - 10
-                screen.blit(ramp_text, (text_x, text_y))
-                
-                # Add decorative elements to ramp
-                if current_season == "winter":
-                    # Add snow on top
-                    pygame.draw.line(
-                        screen,
-                        (255, 255, 255),
-                        (ramp_x + ramp_width//3, road_y - ramp_height//3),
-                        (ramp_x + ramp_width, road_y - ramp_height),
-                        3
-                    )
-                else:
-                    # Add highlight on top
-                    pygame.draw.line(
-                        screen,
-                        (255, 255, 255),
-                        (ramp_x + ramp_width//3, road_y - ramp_height//3),
-                        (ramp_x + ramp_width, road_y - ramp_height),
-                        2
-                    )
+
                 
                 # Add warning stripes
                 stripe_count = 5
@@ -452,37 +384,6 @@ class DragRaceGame:
                         random.uniform(0.5, 1.5),
                         -math.pi/2 + random.uniform(-0.3, 0.3),
                         random.randint(20, 40),
-                        150
-                    )
-        
-        # Draw oil spills
-        for spill in self.oil_spills:
-            spill_x = spill["position"] - self.camera_offset
-            if 0 <= spill_x <= SCREEN_WIDTH:
-                # Determine which lane to draw in
-                spill_y = self.lanes[spill["lane"]]["y"] + 35
-                
-                # Draw oil spill
-                oil_radius = 25
-                oil_color = (20, 20, 20)  # Almost black
-                
-                # Draw main oil puddle
-                pygame.draw.ellipse(screen, oil_color, (spill_x - oil_radius, spill_y - oil_radius//2, oil_radius*2, oil_radius))
-                
-                # Draw oil shine
-                shine_color = (40, 40, 40)  # Slightly lighter
-                pygame.draw.ellipse(screen, shine_color, (spill_x - oil_radius//2, spill_y - oil_radius//4, oil_radius, oil_radius//2))
-                
-                # Add random oil particles
-                if random.random() > 0.9:
-                    self.particles.add_particle(
-                        spill_x + random.uniform(-oil_radius, oil_radius),
-                        spill_y + random.uniform(-oil_radius//2, oil_radius//2),
-                        (30, 30, 30),
-                        random.uniform(1, 3),
-                        random.uniform(0.2, 0.5),
-                        random.uniform(0, 2 * math.pi),
-                        random.randint(10, 30),
                         150
                     )
         
@@ -588,7 +489,7 @@ class DragRaceGame:
             if self.player.in_air:
                 air_text = self.small_font.render("AIR TIME!", True, (100, 200, 255))
                 screen.blit(air_text, (20, 140))
-            
+                
             # Draw spinning status if player is spinning
             if self.player.spinning:
                 spin_text = self.small_font.render("SPINNING!", True, (255, 50, 50))
@@ -609,41 +510,6 @@ class DragRaceGame:
                 elapsed = (pygame.time.get_ticks() - self.race_start_time) / 1000
                 time_text = self.small_font.render(f"Time: {elapsed:.2f}s", True, (255, 255, 255))
                 screen.blit(time_text, (SCREEN_WIDTH - 150, 20))
-                
-            # Draw player 2 / opponent info if in two-player mode
-            if self.two_player_mode:
-                # Draw P2 speed
-                p2_speed_text = self.small_font.render(f"P2 Speed: {int(self.opponent.speed * 20)} km/h", True, (0, 200, 255))
-                screen.blit(p2_speed_text, (SCREEN_WIDTH - 200, 50))
-                
-                # Draw P2 boost status
-                if self.opponent.boost_available:
-                    p2_boost_text = self.small_font.render("P2 BOOST: READY", True, (0, 255, 0))
-                elif self.opponent.boosting:
-                    p2_boost_text = self.small_font.render("P2 BOOST: ACTIVE", True, (255, 165, 0))
-                else:
-                    p2_boost_text = self.small_font.render("P2 BOOST: CHARGING", True, (150, 150, 150))
-                screen.blit(p2_boost_text, (SCREEN_WIDTH - 200, 80))
-                
-                # Draw P2 air status
-                if self.opponent.in_air:
-                    p2_air_text = self.small_font.render("P2 AIR TIME!", True, (100, 200, 255))
-                    screen.blit(p2_air_text, (SCREEN_WIDTH - 200, 110))
-                
-                # Draw P2 spinning status
-                if self.opponent.spinning:
-                    p2_spin_text = self.small_font.render("P2 SPINNING!", True, (255, 50, 50))
-                    screen.blit(p2_spin_text, (SCREEN_WIDTH - 200, 140))
-                    
-                # Draw P2 penalty status
-                if self.opponent.penalized:
-                    p2_penalty_text = self.small_font.render("P2 RED LIGHT!", True, (255, 0, 0))
-                    screen.blit(p2_penalty_text, (SCREEN_WIDTH - 200, 170))
-                    
-                    # Show remaining penalty time
-                    remaining = (self.opponent.penalty_duration - self.opponent.penalty_time) / 60  # Convert to seconds
-                    p2_time_text = self.small_font.render(f"Stop: {remaining:.1f}s", True, (255, 0, 0))
-                    screen.blit(p2_time_text, (SCREEN_WIDTH - 200, 200))
         
         # Draw finish screen
         if self.game_state == "finished":
@@ -654,29 +520,19 @@ class DragRaceGame:
             player_time = (self.player.finish_time - self.race_start_time) / 1000
             opponent_time = (self.opponent.finish_time - self.race_start_time) / 1000
             
-            # Adjust text based on game mode
-            p1_label = "Player 1" if self.two_player_mode else "Your"
-            p2_label = "Player 2" if self.two_player_mode else "Opponent"
-            
             if player_time < opponent_time:
-                if self.two_player_mode:
-                    result = "PLAYER 1 WINS!"
-                else:
-                    result = "YOU WIN!"
+                result = "YOU WIN!"
                 color = (0, 255, 0)
             elif opponent_time < player_time:
-                if self.two_player_mode:
-                    result = "PLAYER 2 WINS!"
-                else:
-                    result = "YOU LOSE!"
+                result = "YOU LOSE!"
                 color = (255, 0, 0)
             else:
                 result = "IT'S A TIE!"
                 color = (255, 255, 0)
             
             result_text = self.font.render(result, True, color)
-            player_time_text = self.small_font.render(f"{p1_label} Time: {player_time:.2f}s", True, (255, 255, 255))
-            opponent_time_text = self.small_font.render(f"{p2_label} Time: {opponent_time:.2f}s", True, (255, 255, 255))
+            player_time_text = self.small_font.render(f"Your Time: {player_time:.2f}s", True, (255, 255, 255))
+            opponent_time_text = self.small_font.render(f"Opponent Time: {opponent_time:.2f}s", True, (255, 255, 255))
             restart_text = self.small_font.render("Press R to restart or ESC to quit", True, (200, 200, 200))
             
             screen.blit(result_text, (SCREEN_WIDTH // 2 - result_text.get_width() // 2, SCREEN_HEIGHT // 2 - 60))
@@ -694,18 +550,6 @@ class DragRaceGame:
         # If in two-player mode, replace AI with a second player
         if self.two_player_mode:
             self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
-    
-    def toggle_two_player_mode(self):
-        """Toggle between one and two player modes"""
-        self.two_player_mode = not self.two_player_mode
-        
-        # Replace opponent with player 2 or AI based on mode
-        if self.two_player_mode:
-            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
-        else:
-            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
-            
-        return self.two_player_mode
 
 # Main game loop
 def main():
@@ -733,7 +577,16 @@ def main():
                     
                 # Toggle two-player mode
                 if event.key == K_t and game.game_state == "title":
-                    game.toggle_two_player_mode()
+                    # Force toggle two-player mode
+                    game.two_player_mode = not game.two_player_mode
+                    
+                    # Replace opponent with player 2 or AI based on mode
+                    if game.two_player_mode:
+                        game.opponent = PlayerCar(100, game.lanes[1]["y"], game.assets['opponent_car'], 1, player_num=2)
+                    else:
+                        game.opponent = AICar(100, game.lanes[1]["y"], game.assets['opponent_car'], 1, difficulty=1.0)
+                    
+                    print(f"Game mode changed to: {'Two Player' if game.two_player_mode else 'One Player'}")
         
         # Handle player input
         keys = pygame.key.get_pressed()
@@ -741,7 +594,7 @@ def main():
             game.player.handle_input(keys)
             
             # If in two-player mode, handle player 2 input
-            if game.two_player_mode and isinstance(game.opponent, PlayerCar):
+            if hasattr(game, 'two_player_mode') and game.two_player_mode and isinstance(game.opponent, PlayerCar):
                 game.opponent.handle_input(keys)
         
         # Update game state
@@ -759,38 +612,173 @@ def main():
 
 if __name__ == "__main__":
     main()
-        # Draw oil spills
-        for spill in self.oil_spills:
-            spill_x = spill["position"] - self.camera_offset
-            if 0 <= spill_x <= SCREEN_WIDTH:
-                # Determine which lane to draw in
-                spill_y = self.lanes[spill["lane"]]["y"] + 35
+    def toggle_two_player_mode(self):
+        """Toggle between one and two player modes"""
+        self.two_player_mode = not self.two_player_mode
+        
+        # Replace opponent with player 2 or AI based on mode
+        if self.two_player_mode:
+            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
+        else:
+            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
+            
+        return self.two_player_mode
+    def draw_title_screen(self):
+        """Draw the title screen with game mode options"""
+        # Title
+        title = self.font.render("PIXEL DRAG RACE", True, (255, 255, 0))
+        subtitle = self.small_font.render("Press SPACE to start", True, (255, 255, 255))
+        
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 100))
+        screen.blit(subtitle, (SCREEN_WIDTH // 2 - subtitle.get_width() // 2, 160))
+        
+        # Game mode indicator
+        mode_text = "TWO PLAYER MODE" if self.two_player_mode else "ONE PLAYER MODE"
+        mode_color = (0, 255, 255) if self.two_player_mode else (255, 255, 255)
+        mode_render = self.small_font.render(mode_text, True, mode_color)
+        screen.blit(mode_render, (SCREEN_WIDTH // 2 - mode_render.get_width() // 2, 200))
+        
+        toggle_text = self.small_font.render("Press T to toggle game mode", True, (200, 200, 200))
+        screen.blit(toggle_text, (SCREEN_WIDTH // 2 - toggle_text.get_width() // 2, 230))
+        
+        # Instructions
+        if self.two_player_mode:
+            instructions = [
+                "Player 1 Controls:",
+                "RIGHT/UP: Accelerate, SPACE: Boost",
+                "Player 2 Controls:",
+                "W/D: Accelerate, LEFT SHIFT: Boost",
+                "R: Restart race"
+            ]
+        else:
+            instructions = [
+                "Controls:",
+                "RIGHT/UP: Accelerate",
+                "SPACE: Boost (when green light is on)",
+                "R: Restart race"
+            ]
+        
+        for i, line in enumerate(instructions):
+            text = self.small_font.render(line, True, (200, 200, 200))
+            screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, 270 + i * 30))
+    def toggle_two_player_mode(self):
+        """Toggle between one and two player modes"""
+        self.two_player_mode = not self.two_player_mode
+        
+        # Replace opponent with player 2 or AI based on mode
+        if self.two_player_mode:
+            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
+        else:
+            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
+            
+        return self.two_player_mode
+        # Draw ramps
+        for ramp in self.ramps:
+            ramp_x = ramp["position"] - self.camera_offset
+            if 0 <= ramp_x <= SCREEN_WIDTH:
+                # Draw ramp base
+                ramp_width = 120
+                ramp_height = ramp["height"]
                 
-                # Draw oil spill
-                oil_radius = 25
-                oil_color = (20, 20, 20)  # Almost black
+                # Calculate color based on season
+                progress = min(1.0, self.player.distance / RACE_DISTANCE)
+                season_index = min(3, int(progress * 4))
+                current_season = self.seasons[season_index]
                 
-                # Draw main oil puddle
-                pygame.draw.ellipse(screen, oil_color, (spill_x - oil_radius, spill_y - oil_radius//2, oil_radius*2, oil_radius))
+                if current_season == "spring":
+                    ramp_color = (100, 180, 100)  # Green
+                    outline_color = (80, 140, 80)  # Darker green
+                elif current_season == "summer":
+                    ramp_color = (180, 140, 60)   # Brown
+                    outline_color = (140, 100, 40)  # Darker brown
+                elif current_season == "autumn":
+                    ramp_color = (170, 90, 40)    # Dark brown
+                    outline_color = (130, 70, 30)  # Darker brown
+                else:  # winter
+                    ramp_color = (200, 200, 220)  # Light gray (snow-covered)
+                    outline_color = (170, 170, 190)  # Darker gray
                 
-                # Draw oil shine
-                shine_color = (40, 40, 40)  # Slightly lighter
-                pygame.draw.ellipse(screen, shine_color, (spill_x - oil_radius//2, spill_y - oil_radius//4, oil_radius, oil_radius//2))
+                # Draw filled ramp - corrected direction
+                road_y = self.lanes[0]["y"] + 35  # Position ramp at player's lane height + adjustment
+                points = [
+                    (ramp_x, road_y),  # Bottom left
+                    (ramp_x + ramp_width, road_y),  # Bottom right
+                    (ramp_x + ramp_width, road_y - ramp_height),  # Top right
+                    (ramp_x + ramp_width//3, road_y - ramp_height//3)  # Top left
+                ]
+                pygame.draw.polygon(screen, ramp_color, points)
                 
-                # Add random oil particles
-                if random.random() > 0.9:
+                # Draw ramp outline
+                pygame.draw.lines(screen, outline_color, True, points, 3)
+                
+                # Add "RAMP" text
+                ramp_text = self.small_font.render("RAMP", True, (255, 255, 255))
+                text_x = ramp_x + (ramp_width // 2) - (ramp_text.get_width() // 2)
+                text_y = road_y - (ramp_height // 2) - 10
+                screen.blit(ramp_text, (text_x, text_y))
+                
+                # Add decorative elements to ramp
+                if current_season == "winter":
+                    # Add snow on top
+                    pygame.draw.line(
+                        screen,
+                        (255, 255, 255),
+                        (ramp_x + ramp_width//3, road_y - ramp_height//3),
+                        (ramp_x + ramp_width, road_y - ramp_height),
+                        3
+                    )
+                else:
+                    # Add highlight on top
+                    pygame.draw.line(
+                        screen,
+                        (255, 255, 255),
+                        (ramp_x + ramp_width//3, road_y - ramp_height//3),
+                        (ramp_x + ramp_width, road_y - ramp_height),
+                        2
+                    )
+                
+                # Add warning stripes
+                stripe_count = 5
+                stripe_width = ramp_width // stripe_count
+                for i in range(stripe_count):
+                    if i % 2 == 0:
+                        stripe_color = (255, 255, 0)  # Yellow
+                    else:
+                        stripe_color = (0, 0, 0)  # Black
+                    
+                    stripe_x = ramp_x + (i * stripe_width)
+                    
+                    pygame.draw.rect(
+                        screen,
+                        stripe_color,
+                        (stripe_x, road_y - 5, stripe_width, 5)
+                    )
+                
+                # Add ramp particles for visual interest
+                if random.random() > 0.8:
+                    particle_x = ramp_x + random.randint(0, ramp_width)
+                    particle_y = road_y - (ramp_height * (particle_x - ramp_x) / ramp_width // 2)
+                    
+                    if current_season == "spring":
+                        color = (120, 200, 120)  # Bright green
+                    elif current_season == "summer":
+                        color = (200, 180, 100)  # Tan
+                    elif current_season == "autumn":
+                        color = (200, 100, 50)   # Orange
+                    else:  # winter
+                        color = (255, 255, 255)  # White
+                        
                     self.particles.add_particle(
-                        spill_x + random.uniform(-oil_radius, oil_radius),
-                        spill_y + random.uniform(-oil_radius//2, oil_radius//2),
-                        (30, 30, 30),
+                        particle_x,
+                        particle_y,
+                        color,
                         random.uniform(1, 3),
-                        random.uniform(0.2, 0.5),
-                        random.uniform(0, 2 * math.pi),
-                        random.randint(10, 30),
+                        random.uniform(0.5, 1.5),
+                        -math.pi/2 + random.uniform(-0.3, 0.3),
+                        random.randint(20, 40),
                         150
                     )
-        
-        # Draw traffic lights - make them more visible
+        # Draw traffic lights - ENHANCED VISIBILITY
         for light in self.traffic_lights:
             light_x = light["position"] - self.camera_offset
             if 0 <= light_x <= SCREEN_WIDTH:
@@ -862,3 +850,269 @@ if __name__ == "__main__":
                 text_x = light_x - light_text.get_width() // 2
                 text_y = housing_y - 25
                 screen.blit(light_text, (text_x, text_y))
+
+        # Draw oil spills
+        for spill in self.oil_spills:
+            spill_x = spill["position"] - self.camera_offset
+            if 0 <= spill_x <= SCREEN_WIDTH:
+                # Determine which lane to draw in
+                spill_y = self.lanes[spill["lane"]]["y"] + 35
+                
+                # Draw oil spill
+                oil_radius = 25
+                oil_color = (20, 20, 20)  # Almost black
+                
+                # Draw main oil puddle
+                pygame.draw.ellipse(screen, oil_color, (spill_x - oil_radius, spill_y - oil_radius//2, oil_radius*2, oil_radius))
+                
+                # Draw oil shine
+                shine_color = (40, 40, 40)  # Slightly lighter
+                pygame.draw.ellipse(screen, shine_color, (spill_x - oil_radius//2, spill_y - oil_radius//4, oil_radius, oil_radius//2))
+                
+                # Add random oil particles
+                if random.random() > 0.9:
+                    self.particles.add_particle(
+                        spill_x + random.uniform(-oil_radius, oil_radius),
+                        spill_y + random.uniform(-oil_radius//2, oil_radius//2),
+                        (30, 30, 30),
+                        random.uniform(1, 3),
+                        random.uniform(0.2, 0.5),
+                        random.uniform(0, 2 * math.pi),
+                        random.randint(10, 30),
+                        150
+                    )
+        
+        # Draw traffic lights
+        for light in self.traffic_lights:
+            light_x = light["position"] - self.camera_offset
+            if 0 <= light_x <= SCREEN_WIDTH:
+                # Draw traffic light pole
+                pole_height = 150
+                pole_width = 10
+                pole_color = (100, 100, 100)  # Gray
+                
+                # Draw pole
+                pygame.draw.rect(screen, pole_color, 
+                               (light_x - pole_width//2, SCREEN_HEIGHT - 300, pole_width, pole_height))
+                
+                # Draw traffic light housing
+                housing_width = 30
+                housing_height = 80
+                housing_color = (50, 50, 50)  # Dark gray
+                
+                housing_x = light_x - housing_width//2
+                housing_y = SCREEN_HEIGHT - 300 - housing_height
+                
+                pygame.draw.rect(screen, housing_color, 
+                               (housing_x, housing_y, housing_width, housing_height))
+                pygame.draw.rect(screen, (30, 30, 30), 
+                               (housing_x, housing_y, housing_width, housing_height), 2)
+                
+                # Draw lights
+                light_radius = 10
+                light_spacing = 25
+                
+                # Red light
+                red_color = (255, 0, 0) if light["state"] == "red" else (100, 0, 0)
+                pygame.draw.circle(screen, red_color, 
+                                 (light_x, housing_y + 15), light_radius)
+                
+                # Yellow light
+                yellow_color = (255, 255, 0) if light["state"] == "yellow" else (100, 100, 0)
+                pygame.draw.circle(screen, yellow_color, 
+                                 (light_x, housing_y + 40), light_radius)
+                
+                # Green light
+                green_color = (0, 255, 0) if light["state"] == "green" else (0, 100, 0)
+                pygame.draw.circle(screen, green_color, 
+                                 (light_x, housing_y + 65), light_radius)
+                
+                # Add light glow effect
+                if light["state"] == "red":
+                    glow_color = (255, 100, 100, 100)
+                    glow_pos = (light_x, housing_y + 15)
+                elif light["state"] == "yellow":
+                    glow_color = (255, 255, 100, 100)
+                    glow_pos = (light_x, housing_y + 40)
+                else:  # green
+                    glow_color = (100, 255, 100, 100)
+                    glow_pos = (light_x, housing_y + 65)
+                
+                # Create glow surface
+                glow_surface = pygame.Surface((40, 40), pygame.SRCALPHA)
+                pygame.draw.circle(glow_surface, glow_color, (20, 20), 15)
+                screen.blit(glow_surface, (glow_pos[0] - 20, glow_pos[1] - 20))
+    def toggle_two_player_mode(self):
+        """Toggle between one and two player modes"""
+        self.two_player_mode = not self.two_player_mode
+        
+        # Replace opponent with player 2 or AI based on mode
+        if self.two_player_mode:
+            self.opponent = PlayerCar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, player_num=2)
+        else:
+            self.opponent = AICar(100, self.lanes[1]["y"], self.assets['opponent_car'], 1, difficulty=1.0)
+            
+        return self.two_player_mode
+        # Draw traffic lights
+        for light in self.traffic_lights:
+            light_x = light["position"] - self.camera_offset
+            if 0 <= light_x <= SCREEN_WIDTH:
+                # Draw traffic light pole
+                pole_height = 150
+                pole_width = 10
+                pole_color = (100, 100, 100)  # Gray
+                
+                # Draw pole
+                pygame.draw.rect(screen, pole_color, 
+                               (light_x - pole_width//2, SCREEN_HEIGHT - 300, pole_width, pole_height))
+                
+                # Draw traffic light housing
+                housing_width = 30
+                housing_height = 80
+                housing_color = (50, 50, 50)  # Dark gray
+                
+                housing_x = light_x - housing_width//2
+                housing_y = SCREEN_HEIGHT - 300 - housing_height
+                
+                pygame.draw.rect(screen, housing_color, 
+                               (housing_x, housing_y, housing_width, housing_height))
+                pygame.draw.rect(screen, (30, 30, 30), 
+                               (housing_x, housing_y, housing_width, housing_height), 2)
+                
+                # Draw lights
+                light_radius = 10
+                light_spacing = 25
+                
+                # Red light
+                red_color = (255, 0, 0) if light["state"] == "red" else (100, 0, 0)
+                pygame.draw.circle(screen, red_color, 
+                                 (light_x, housing_y + 15), light_radius)
+                
+                # Yellow light
+                yellow_color = (255, 255, 0) if light["state"] == "yellow" else (100, 100, 0)
+                pygame.draw.circle(screen, yellow_color, 
+                                 (light_x, housing_y + 40), light_radius)
+                
+                # Green light
+                green_color = (0, 255, 0) if light["state"] == "green" else (0, 100, 0)
+                pygame.draw.circle(screen, green_color, 
+                                 (light_x, housing_y + 65), light_radius)
+                
+                # Add light glow effect
+                if light["state"] == "red":
+                    glow_color = (255, 100, 100, 100)
+                    glow_pos = (light_x, housing_y + 15)
+                elif light["state"] == "yellow":
+                    glow_color = (255, 255, 100, 100)
+                    glow_pos = (light_x, housing_y + 40)
+                else:  # green
+                    glow_color = (100, 255, 100, 100)
+                    glow_pos = (light_x, housing_y + 65)
+                
+                # Create glow surface
+                glow_surface = pygame.Surface((40, 40), pygame.SRCALPHA)
+                pygame.draw.circle(glow_surface, glow_color, (20, 20), 15)
+                screen.blit(glow_surface, (glow_pos[0] - 20, glow_pos[1] - 20))
+        # Draw traffic lights - ENHANCED VISIBILITY
+        for light in self.traffic_lights:
+            light_x = light["position"] - self.camera_offset
+            if 0 <= light_x <= SCREEN_WIDTH:
+                # Draw traffic light pole
+                pole_height = 200
+                pole_width = 15
+                pole_color = (80, 80, 80)  # Gray
+                
+                # Draw pole
+                pygame.draw.rect(screen, pole_color, 
+                               (light_x - pole_width//2, SCREEN_HEIGHT - 300, pole_width, pole_height))
+                
+                # Draw traffic light housing
+                housing_width = 50
+                housing_height = 120
+                housing_color = (40, 40, 40)  # Dark gray
+                
+                housing_x = light_x - housing_width//2
+                housing_y = SCREEN_HEIGHT - 300 - housing_height
+                
+                pygame.draw.rect(screen, housing_color, 
+                               (housing_x, housing_y, housing_width, housing_height))
+                pygame.draw.rect(screen, (20, 20, 20), 
+                               (housing_x, housing_y, housing_width, housing_height), 3)
+                
+                # Draw lights
+                light_radius = 15
+                light_spacing = 35
+                
+                # Red light
+                red_color = (255, 0, 0) if light["state"] == "red" else (80, 0, 0)
+                pygame.draw.circle(screen, red_color, 
+                                 (light_x, housing_y + 20), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 20), light_radius, 2)
+                
+                # Yellow light
+                yellow_color = (255, 255, 0) if light["state"] == "yellow" else (80, 80, 0)
+                pygame.draw.circle(screen, yellow_color, 
+                                 (light_x, housing_y + 60), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 60), light_radius, 2)
+                
+                # Green light
+                green_color = (0, 255, 0) if light["state"] == "green" else (0, 80, 0)
+                pygame.draw.circle(screen, green_color, 
+                                 (light_x, housing_y + 100), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 100), light_radius, 2)
+                
+                # Add light glow effect
+                if light["state"] == "red":
+                    glow_color = (255, 100, 100, 150)
+                    glow_pos = (light_x, housing_y + 20)
+                elif light["state"] == "yellow":
+                    glow_color = (255, 255, 100, 150)
+                    glow_pos = (light_x, housing_y + 60)
+                else:  # green
+                    glow_color = (100, 255, 100, 150)
+                    glow_pos = (light_x, housing_y + 100)
+                
+                # Create glow surface
+                glow_surface = pygame.Surface((60, 60), pygame.SRCALPHA)
+                pygame.draw.circle(glow_surface, glow_color, (30, 30), 25)
+                screen.blit(glow_surface, (glow_pos[0] - 30, glow_pos[1] - 30))
+                
+                # Add "TRAFFIC LIGHT" text
+                light_text = self.small_font.render("TRAFFIC LIGHT", True, (255, 255, 255))
+                text_x = light_x - light_text.get_width() // 2
+                text_y = housing_y - 25
+                screen.blit(light_text, (text_x, text_y))
+
+        # Draw oil spills
+        for spill in self.oil_spills:
+            spill_x = spill["position"] - self.camera_offset
+            if 0 <= spill_x <= SCREEN_WIDTH:
+                # Determine which lane to draw in
+                spill_y = self.lanes[spill["lane"]]["y"] + 35
+                
+                # Draw oil spill
+                oil_radius = 25
+                oil_color = (20, 20, 20)  # Almost black
+                
+                # Draw main oil puddle
+                pygame.draw.ellipse(screen, oil_color, (spill_x - oil_radius, spill_y - oil_radius//2, oil_radius*2, oil_radius))
+                
+                # Draw oil shine
+                shine_color = (40, 40, 40)  # Slightly lighter
+                pygame.draw.ellipse(screen, shine_color, (spill_x - oil_radius//2, spill_y - oil_radius//4, oil_radius, oil_radius//2))
+                
+                # Add random oil particles
+                if random.random() > 0.9:
+                    self.particles.add_particle(
+                        spill_x + random.uniform(-oil_radius, oil_radius),
+                        spill_y + random.uniform(-oil_radius//2, oil_radius//2),
+                        (30, 30, 30),
+                        random.uniform(1, 3),
+                        random.uniform(0.2, 0.5),
+                        random.uniform(0, 2 * math.pi),
+                        random.randint(10, 30),
+                        150
+                    )

@@ -6,7 +6,7 @@ A 2D racing game with pixel art graphics and colorful effects
 
 import pygame
 import sys
-from game_new import main
+from fixed_game_new import main
 
 if __name__ == "__main__":
     try:

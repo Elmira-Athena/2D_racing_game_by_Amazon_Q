@@ -1,0 +1,72 @@
+        # Draw traffic lights - ENHANCED VISIBILITY
+        for light in self.traffic_lights:
+            light_x = light["position"] - self.camera_offset
+            if 0 <= light_x <= SCREEN_WIDTH:
+                # Draw traffic light pole
+                pole_height = 200
+                pole_width = 15
+                pole_color = (80, 80, 80)  # Gray
+                
+                # Draw pole
+                pygame.draw.rect(screen, pole_color, 
+                               (light_x - pole_width//2, SCREEN_HEIGHT - 300, pole_width, pole_height))
+                
+                # Draw traffic light housing
+                housing_width = 50
+                housing_height = 120
+                housing_color = (40, 40, 40)  # Dark gray
+                
+                housing_x = light_x - housing_width//2
+                housing_y = SCREEN_HEIGHT - 300 - housing_height
+                
+                pygame.draw.rect(screen, housing_color, 
+                               (housing_x, housing_y, housing_width, housing_height))
+                pygame.draw.rect(screen, (20, 20, 20), 
+                               (housing_x, housing_y, housing_width, housing_height), 3)
+                
+                # Draw lights
+                light_radius = 15
+                light_spacing = 35
+                
+                # Red light
+                red_color = (255, 0, 0) if light["state"] == "red" else (80, 0, 0)
+                pygame.draw.circle(screen, red_color, 
+                                 (light_x, housing_y + 20), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 20), light_radius, 2)
+                
+                # Yellow light
+                yellow_color = (255, 255, 0) if light["state"] == "yellow" else (80, 80, 0)
+                pygame.draw.circle(screen, yellow_color, 
+                                 (light_x, housing_y + 60), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 60), light_radius, 2)
+                
+                # Green light
+                green_color = (0, 255, 0) if light["state"] == "green" else (0, 80, 0)
+                pygame.draw.circle(screen, green_color, 
+                                 (light_x, housing_y + 100), light_radius)
+                pygame.draw.circle(screen, (20, 20, 20), 
+                                 (light_x, housing_y + 100), light_radius, 2)
+                
+                # Add light glow effect
+                if light["state"] == "red":
+                    glow_color = (255, 100, 100, 150)
+                    glow_pos = (light_x, housing_y + 20)
+                elif light["state"] == "yellow":
+                    glow_color = (255, 255, 100, 150)
+                    glow_pos = (light_x, housing_y + 60)
+                else:  # green
+                    glow_color = (100, 255, 100, 150)
+                    glow_pos = (light_x, housing_y + 100)
+                
+                # Create glow surface
+                glow_surface = pygame.Surface((60, 60), pygame.SRCALPHA)
+                pygame.draw.circle(glow_surface, glow_color, (30, 30), 25)
+                screen.blit(glow_surface, (glow_pos[0] - 30, glow_pos[1] - 30))
+                
+                # Add "TRAFFIC LIGHT" text
+                light_text = self.small_font.render("TRAFFIC LIGHT", True, (255, 255, 255))
+                text_x = light_x - light_text.get_width() // 2
+                text_y = housing_y - 25
+                screen.blit(light_text, (text_x, text_y))

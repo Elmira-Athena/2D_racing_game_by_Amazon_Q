@@ -188,3 +188,22 @@ class ParticleSystem:
             
             # Draw to main surface
             surface.blit(particle_surface, (int(particle['x'] - current_size), int(particle['y'] - current_size)))
+    def add_oil_splash(self, x, y):
+        """Add oil splash particles"""
+        colors = [
+            (30, 30, 30),  # Dark gray
+            (40, 40, 40),  # Gray
+            (20, 20, 20),  # Almost black
+        ]
+        
+        for _ in range(10):
+            self.add_particle(
+                x + random.uniform(-15, 15),
+                y + random.uniform(-5, 5),
+                random.choice(colors),
+                random.uniform(3, 8),
+                random.uniform(0.5, 2),
+                random.uniform(0, 2 * math.pi),
+                random.randint(30, 60),
+                180
+            )
